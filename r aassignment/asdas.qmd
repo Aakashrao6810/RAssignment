@@ -1,0 +1,15 @@
+---
+---
+title: "Global Indicators Analysis"
+format: html
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(plotly)
+library(ggplot2)
+library(dplyr)
+library(maps)
+---
+Introduction
+This report provides an analytical view of various global indicators over recent years. Visualizations include geographical distribution, trends over time, and comparative analysis among countries.
