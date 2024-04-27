@@ -1,0 +1,190 @@
+---
+title: "Quarto Assignment MT5000"
+subtitle: "Bridging the Gap- Economic Priorities and Public Health Infrastructure in African Nations"
+
+author: "Aakash Rao"
+date: "2024-04-25"
+format:
+  html:
+    theme: "Journal" 
+    toc: true
+execute: 
+  echo: false
+  warning: false
+  message: false
+---
+```{r setup, include=FALSE}
+
+#libraries
+library(tidyverse)
+library(ggplot2)
+library(maps)
+library(dplyr)
+library(plotly)
+#data read
+indicator1 <- read.csv("indicator1.csv")
+metadata <- read.csv("metadata.csv")
+
+#joining 
+data_join <- full_join(metadata, indicator1)
+data_join <- full_join(metadata, indicator1, by = join_by(country, year))
+data_join <- full_join(metadata, indicator1, by = c("country" , "year" ))
+
+
+```
+## Map Visualization of Handwashing Facilities at home in 2022
+
+The map below displays the proportion of the population without access to handwashing facilities across different countries in the year 2022. This visualization helps identify geographical disparities in access to basic sanitation facilities.
+
+Sub-Saharan Africa and parts of Asia display the highest needs, aligning with broader socio-economic challenges.
+
+These insights are crucial for NGOs, policymakers, and public health officials to allocate resources more effectively and design targeted interventions to promote hygiene and prevent disease.
+
+```{r}
+data_join_2022 <- data_join %>%
+    filter(year == 2022)
+  
+  # Load world map data
+  map_world <- map_data("world")
+  
+  # Join the map data with your data for 2022
+  map_data_join_2022 <- full_join(data_join_2022, map_world, by = c("country" = "region"))
+  
+  # Create the ggplot object for the map
+  map_plot <- ggplot(map_data_join_2022, aes(x = long, y = lat, group = group, fill = obs_value)) +
+    geom_polygon() +
+    labs(title = "Proportion of population with no handwashing facility at home") +
+    theme_minimal() +
+    coord_fixed(1.3)  # Keep aspect ratio of the map
+  
+  # Convert the ggplot object to an interactive Plotly graph with tooltips showing country and observed value
+  plotly_map <- ggplotly(map_plot, tooltip = c("country", "obs_value"))
+  
+  # Display the interactive plot
+  plotly_map
+```
+
+
+## Persistent Challenges in Global Sanitation: A Focus on Handwashing Facilities from 2018-2022
+
+Bar Chart Explanation:
+
+The resultant bar chart starkly highlights the disparities in hand washing facility access. Countries are ordered by their average lack of access, providing a clear visual hierarchy of need. This visualization serves not just to inform but to alarm, showcasing regions where interventions are desperately needed.
+
+The lack of hand washing facilities contributes to the spread of infectious diseases and has implications for personal and community health resilience. In the context of recent global pandemics, the importance of basic sanitation has been dramatically underscored.
+
+The story of sanitation in the 21st century is far from over. While some progress has been noted globally, our analysis from 2018 to 2022 shows that significant gaps still exist. Addressing these gaps is not just a matter of public health but of human dignity and social justice.
+
+
+```{r}
+data_filtered <- data_join %>%
+  filter(year >= 2018 & year <= 2022) %>%
+  group_by(country) %>%
+  summarize(avg_obs = mean(obs_value, na.rm = TRUE)) %>%
+  filter(avg_obs > 50)
+
+bar_chart <- ggplot(data_filtered, aes(x = reorder(country, avg_obs), y = avg_obs, fill = country)) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  labs(x = "Country", y = "Average Obs Value", title = "Handwashing Facility Access in High-Need Countries (2018-2022)") +
+  theme(
+    legend.position = "none",
+    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)  # Rotate labels to 45 degrees and adjust horizontal justification
+  )
+
+plotly_bar_chart <- ggplotly(bar_chart)
+plotly_bar_chart
+```
+
+
+## Economic Priorities and Public Health: A Tale of Five African Nations- Scatter Plot
+
+Recent analysis has revealed significant gaps in handwashing facility accessibility across several nations, underscoring a public health crisis in preventing infectious diseases. Concurrently, data from 2022 highlights the disproportionate military expenditures relative to the Gross National Income (GNI) of these countries, suggesting a potential misallocation of resources that prioritizes security over critical public health needs.
+
+By examining the relationship between GNI and military spending through interactive scatter plots, it becomes evident that higher military expenditures do not correlate with improved public sanitation access. This juxtaposition highlights the need for these countries to reconsider their spending priorities. Redirecting funds from military budgets towards health infrastructure, particularly handwashing facilities, could dramatically improve public health outcomes and help prevent the spread of diseases. This reevaluation could ensure a more balanced approach to national spending, emphasizing public welfare alongside security.
+
+
+
+```{r}
+ 
+  library(dplyr)
+  library(ggplot2)
+  library(plotly)
+  library(scales)  # For more control over the scales and labels
+  
+  # Assuming 'data_join' contains the appropriate variables and has been prepared for analysis
+  filtered_data <- data_join %>%
+    filter(country %in% c("Central African Republic", "Sierra Leone", "Guinea-Bissau", "Togo", "Liberia")) %>%
+    group_by(country)
+  
+  # Define a color palette for the countries
+  country_colors <- c("Central African Republic" = "#E41A1C", "Sierra Leone" = "#4DAF4A",
+                      "Guinea-Bissau" = "#984EA3", "Togo" = "#FF7F00", "Liberia" = "#FFFF33")
+  
+  # Create the scatter plot with custom colors and adjusted scales
+  scatter_plot <- ggplot(filtered_data, aes(x = GNI..current.US.., y = Military.expenditure....of.GDP., color = country)) +
+    geom_point(size = 2, alpha = 0.9, aes(text = paste("Country:", country, "<br>GNI (US$):", GNI..current.US.., 
+                                                       "<br>Military Expenditure (% GDP):", Military.expenditure....of.GDP.))) +
+    geom_smooth(method = "lm", se = FALSE) +  # Add regression line without confidence interval
+    scale_color_manual(values = country_colors) +  # Apply custom colors
+    scale_x_log10(labels = comma) +  # Logarithmic scale for GNI, with formatted labels
+    scale_y_continuous(
+      labels = percent_format(accuracy = 0.1),
+      limits = c(0, 5)  # Set the y-axis limits from 0% to 10% for better focus
+    ) +
+    labs(x = "GNI (Current US$, log scale)", y = "Military Expenditure as % of GDP",
+         title = "Scatter Plot with Regression Line",
+         subtitle = "Analyzing the relationship between military spending and GNI per capita in select African countries") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1),  # Adjust text angle for better legibility
+          plot.title = element_text(size = 16, face = "bold"),
+          plot.subtitle = element_text(size = 14),
+          legend.title = element_text(size = 14),
+          legend.text = element_text(size = 12))
+  
+  # Convert to an interactive plotly plot
+  plotly_scatter_plot <- ggplotly(scatter_plot, tooltip = "text")
+  
+  # Display the plot
+  plotly_scatter_plot
+```
+
+
+## Demographic Trends and Development Challenges in Selected African Nations
+
+Conducted an analysis of population trends across five countries to understand how rapid growth may strain public infrastructure, particularly health systems and economic development. This demographic analysis complements our previous findings on the allocation of resources, revealing a critical misalliance between military expenditure and public health investment.
+
+Using time series data, we developed an interactive visualization that illustrates population increases and allows for detailed exploration of year-by-year changes. The significant growth observed in all countries highlights the urgent need to reevaluate spending priorities. The current investment patterns, favoring military over health, must be adjusted. Enhancing public health infrastructure, especially access to basic services like handwashing facilities, is crucial to meet the growing demands of these populations effectively. This strategic shift in resource allocation can help address the challenges posed by increased population pressures and improve overall public health outcomes.
+
+
+```{r}
+metadata <- read.csv("metadata.csv")
+  
+  # Filter data for specific countries
+  data_selected <- metadata %>%
+    filter(country %in% c("Central African Republic", "Sierra Leone", "Guinea-Bissau", "Togo", "Liberia"))
+  
+  # Create the ggplot object for time series data
+  ggplot_object <- ggplot(data_selected, aes(x = year, y = Population..total, color = country, group = country)) +
+    geom_line() +
+    labs(x = "Year", y = "Population", title = "Population Trends in Selected African Countries") +
+    theme_minimal()
+  
+  # Convert the ggplot object to an interactive Plotly graph
+  plotly_object <- ggplotly(ggplot_object)
+  
+  # Display the interactive plot
+  plotly_object
+```
+
+## Conclusion
+
+This project underscores the critical intersection of economic policies, military spending, and public health provisions, revealing a clear need for a more balanced approach that prioritizes human dignity and public welfare. As these nations move forward, it is crucial that they leverage these insights to foster environments where economic growth and public health improvements go hand in hand, ensuring no citizen is left behind. The urgency of reevaluating spending priorities cannot be overstated, especially in light of ongoing global health challenges.
+
+By advocating for policies that are informed by robust analytical insights and grounded in the principles of equity and sustainability, stakeholders can help pave the way for a future where every individual has access to the basic services necessary for a healthy life. This is not just a matter of public health but a fundamental aspect of social justice and human rights.
+
+
+
+
+
